@@ -48,6 +48,13 @@ let currentGameWords = [];
 let isClickMode = false;
 let clickModeCells = [];
 
+// Sistema de ranking
+let rankings = {
+    facil: [],
+    medio: [],
+    dificil: []
+};
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
@@ -86,7 +93,7 @@ function selectRandomWords() {
 
 function initGame() {
     const config = gameConfig[currentDifficulty];
-    currentGameWords = selectRandomWords();
+    currentGameWords = shuffleArray(selectRandomWords());
     createGrid(config.gridSize);
     placeWords(currentGameWords);
     fillEmptySpaces();
@@ -217,80 +224,99 @@ function renderWordList(words) {
 }
 
 function handleCellMouseDown(e) {
+    if (isClickMode) return;
     selectedCells = [];
     const cell = e.target;
     cell.classList.add('selected');
     selectedCells.push(cell);
+    cell.setAttribute('aria-selected', 'true');
 }
 
 function handleCellMouseOver(e) {
-    if (selectedCells.length > 0) {
-        const cell = e.target;
-        if (!selectedCells.includes(cell)) {
-            // Check if the new cell forms a valid line with existing cells
-            const lastCell = selectedCells[selectedCells.length - 1];
-            const lastRow = parseInt(lastCell.dataset.row);
-            const lastCol = parseInt(lastCell.dataset.col);
-            const newRow = parseInt(cell.dataset.row);
-            const newCol = parseInt(cell.dataset.col);
-            
-            const rowDiff = newRow - lastRow;
-            const colDiff = newCol - lastCol;
-            
-            // If this is the second cell, establish the direction
-            if (selectedCells.length === 1) {
-                if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
-                    return; // Not a valid direction
-                }
-            } else {
-                // For subsequent cells, check if they follow the same direction
-                const firstCell = selectedCells[0];
-                const firstRow = parseInt(firstCell.dataset.row);
-                const firstCol = parseInt(firstCell.dataset.col);
-                
-                const initialRowDiff = lastRow - firstRow;
-                const initialColDiff = lastCol - firstCol;
-                
-                if (initialRowDiff !== 0 && initialColDiff !== 0) {
-                    // Diagonal
-                    if (Math.abs(rowDiff) !== Math.abs(colDiff) || 
-                        Math.sign(rowDiff) !== Math.sign(initialRowDiff) || 
-                        Math.sign(colDiff) !== Math.sign(initialColDiff)) {
-                        return;
-                    }
-                } else if (initialRowDiff === 0) {
-                    // Horizontal
-                    if (rowDiff !== 0 || Math.sign(colDiff) !== Math.sign(initialColDiff)) {
-                        return;
-                    }
-                } else {
-                    // Vertical
-                    if (colDiff !== 0 || Math.sign(rowDiff) !== Math.sign(initialRowDiff)) {
-                        return;
-                    }
-                }
-            }
-            
-            cell.classList.add('selected');
-            selectedCells.push(cell);
+    if (isClickMode || selectedCells.length === 0) return;
+    const cell = e.target;
+
+    // Evita adicionar a mesma célula múltiplas vezes ou células que não são 'cell'
+    if (!cell.classList.contains('cell') || selectedCells.includes(cell)) {
+        return;
+    }
+
+    const lastCell = selectedCells[selectedCells.length - 1];
+    const lastRow = parseInt(lastCell.dataset.row);
+    const lastCol = parseInt(lastCell.dataset.col);
+    const newRow = parseInt(cell.dataset.row);
+    const newCol = parseInt(cell.dataset.col);
+
+    const rowDiff = newRow - lastRow;
+    const colDiff = newCol - lastCol;
+
+    // Se for a segunda célula, define a direção permitida
+    if (selectedCells.length === 1) {
+        // Verifica se a direção é horizontal, vertical ou diagonal
+        if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
+            return; // Não é uma direção válida
         }
+    } else {
+        // Para células subsequentes, verifica se seguem a mesma direção da primeira para a segunda célula
+        const firstCell = selectedCells[0];
+        const firstRow = parseInt(firstCell.dataset.row);
+        const firstCol = parseInt(firstCell.dataset.col);
+
+        const initialRowDiff = parseInt(lastCell.dataset.row) - firstRow; // Diferença da primeira para a última célula selecionada
+        const initialColDiff = parseInt(lastCell.dataset.col) - firstCol;
+
+        // Calcula a direção unitária da seleção inicial
+        const initialRowDir = initialRowDiff === 0 ? 0 : initialRowDiff / Math.abs(initialRowDiff);
+        const initialColDir = initialColDiff === 0 ? 0 : initialColDiff / Math.abs(initialColDiff);
+
+        // Calcula a posição esperada da nova célula com base na direção inicial e no número de células selecionadas
+        const expectedRow = parseInt(firstCell.dataset.row) + (selectedCells.length * initialRowDir);
+        const expectedCol = parseInt(firstCell.dataset.col) + (selectedCells.length * initialColDir);
+
+        // Verifica se a nova célula está na posição esperada
+        if (newRow !== expectedRow || newCol !== expectedCol) {
+             return; // Não segue a direção
+        }
+    }
+
+    cell.classList.add('selected');
+    cell.setAttribute('aria-selected', 'true');
+    selectedCells.push(cell);
+
+    const word = getSelectedWord();
+    if (word) {
+        const wordElement = Array.from(document.querySelectorAll('.word-item')).find(
+            el => el.textContent === word && !el.classList.contains('found')
+        );
+        // Remover highlight anterior antes de adicionar um novo
+        document.querySelectorAll('.word-item.highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
+        if (wordElement) {
+            wordElement.classList.add('highlight');
+        }
+    } else {
+         // Remover highlight se a seleção atual não formar uma palavra válida
+        document.querySelectorAll('.word-item.highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
     }
 }
 
 function handleCellMouseUp() {
-    if (selectedCells.length > 0) {
-        const word = getSelectedWordFromCells(selectedCells);
-        if (word && currentGameWords.includes(word) && !foundWords.has(word)) {
-            const color = getRandomColor();
-            selectedCells.forEach(cell => {
-                cell.style.backgroundColor = color;
-                cell.style.color = '#FFFFFF';
-            });
-            checkWord(word);
-        }
-        selectedCells.forEach(cell => cell.classList.remove('selected'));
-        selectedCells = [];
+    if (isClickMode) return;
+    const word = getSelectedWord();
+    if (word) {
+        checkWord(word, selectedCells);
     }
+    selectedCells.forEach(cell => {
+        cell.classList.remove('selected');
+        cell.removeAttribute('aria-selected');
+    });
+    selectedCells = [];
+    document.querySelectorAll('.word-item.highlight').forEach(el => {
+        el.classList.remove('highlight');
+    });
 }
 
 function getSelectedWord() {
@@ -391,14 +417,24 @@ function getRandomColor() {
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function checkWord(word) {
+function checkWord(word, cells) {
     if (currentGameWords.includes(word) && !foundWords.has(word)) {
         foundWords.add(word);
-        const color = getRandomColor();
-        selectedCells.forEach(cell => {
-            cell.style.backgroundColor = color;
-            cell.style.color = '#FFFFFF';
-        });
+        const wordElement = Array.from(document.querySelectorAll('.word-item')).find(
+            el => el.textContent === word
+        );
+        if (wordElement) {
+            wordElement.classList.add('found');
+            wordElement.setAttribute('aria-label', `${word} - Encontrada`);
+            
+            // Colorir as células permanentemente
+            const color = getRandomColor();
+            cells.forEach(cell => {
+                cell.style.backgroundColor = color;
+                cell.style.color = '#FFFFFF';
+                cell.classList.add('word-found-cell'); // Adicionar uma classe para estilização futura se necessário
+            });
+        }
         updateWordList();
         checkGameComplete();
     }
@@ -416,14 +452,18 @@ function updateWordList() {
 function checkGameComplete() {
     if (foundWords.size === currentGameWords.length) {
         clearInterval(timerInterval);
+        const finalTime = Math.floor((new Date() - gameStartTime) / 1000);
+        updateRanking(currentDifficulty, finalTime);
         showCompletionMessage();
     }
 }
 
 function showCompletionMessage() {
-    const finalTime = document.getElementById('time').textContent;
-    document.getElementById('finalTime').textContent = finalTime;
-    document.getElementById('completionMessage').classList.add('active');
+    const message = document.getElementById('completionMessage');
+    const finalTime = document.getElementById('finalTime');
+    finalTime.textContent = document.getElementById('time').textContent;
+    message.classList.add('active');
+    message.setAttribute('aria-hidden', 'false');
 }
 
 function startTimer() {
@@ -440,88 +480,58 @@ function updateTimer() {
 }
 
 function setupModeToggle() {
-    const modeToggle = document.getElementById('modeToggle');
-    modeToggle.addEventListener('click', () => {
+    const gameContainer = document.querySelector('.game-container');
+    const modeBtn = document.createElement('button');
+    modeBtn.className = 'mode-btn';
+    modeBtn.textContent = 'Modo Clique';
+    modeBtn.setAttribute('aria-label', 'Alternar modo de seleção');
+    modeBtn.setAttribute('aria-pressed', 'false');
+    
+    modeBtn.addEventListener('click', () => {
         isClickMode = !isClickMode;
-        modeToggle.textContent = isClickMode ? 'Modo Arrastar' : 'Modo Clique';
-        modeToggle.classList.toggle('active');
+        modeBtn.textContent = isClickMode ? 'Modo Arrastar' : 'Modo Clique';
+        modeBtn.setAttribute('aria-pressed', isClickMode.toString());
+        modeBtn.classList.toggle('active');
         
-        // Clear any selected cells when switching modes
-        document.querySelectorAll('.cell.selected').forEach(cell => {
+        // Limpar seleções ao trocar de modo
+        selectedCells.forEach(cell => {
             cell.classList.remove('selected');
+            cell.removeAttribute('aria-selected');
         });
         selectedCells = [];
+        clickModeCells.forEach(cell => {
+            cell.classList.remove('selected');
+            cell.removeAttribute('aria-selected');
+        });
         clickModeCells = [];
     });
+    
+    document.querySelector('.game-controls').prepend(modeBtn);
 }
 
 function handleCellClick(e) {
+    if (!isClickMode) return;
     const cell = e.target;
-    if (selectedCells.includes(cell)) {
+    
+    if (clickModeCells.includes(cell)) {
         cell.classList.remove('selected');
-        selectedCells = selectedCells.filter(c => c !== cell);
+        cell.removeAttribute('aria-selected');
+        clickModeCells = clickModeCells.filter(c => c !== cell);
     } else {
-        // Check if the new cell forms a valid line with existing cells
-        if (selectedCells.length > 0) {
-            const lastCell = selectedCells[selectedCells.length - 1];
-            const lastRow = parseInt(lastCell.dataset.row);
-            const lastCol = parseInt(lastCell.dataset.col);
-            const newRow = parseInt(cell.dataset.row);
-            const newCol = parseInt(cell.dataset.col);
-            
-            const rowDiff = newRow - lastRow;
-            const colDiff = newCol - lastCol;
-            
-            // If this is the second cell, establish the direction
-            if (selectedCells.length === 1) {
-                if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
-                    return; // Not a valid direction
-                }
-            } else {
-                // For subsequent cells, check if they follow the same direction
-                const firstCell = selectedCells[0];
-                const firstRow = parseInt(firstCell.dataset.row);
-                const firstCol = parseInt(firstCell.dataset.col);
-                
-                const initialRowDiff = lastRow - firstRow;
-                const initialColDiff = lastCol - firstCol;
-                
-                if (initialRowDiff !== 0 && initialColDiff !== 0) {
-                    // Diagonal
-                    if (Math.abs(rowDiff) !== Math.abs(colDiff) || 
-                        Math.sign(rowDiff) !== Math.sign(initialRowDiff) || 
-                        Math.sign(colDiff) !== Math.sign(initialColDiff)) {
-                        return;
-                    }
-                } else if (initialRowDiff === 0) {
-                    // Horizontal
-                    if (rowDiff !== 0 || Math.sign(colDiff) !== Math.sign(initialColDiff)) {
-                        return;
-                    }
-                } else {
-                    // Vertical
-                    if (colDiff !== 0 || Math.sign(rowDiff) !== Math.sign(initialRowDiff)) {
-                        return;
-                    }
-                }
-            }
-        }
-        
         cell.classList.add('selected');
-        selectedCells.push(cell);
-        
-        // Check for word after adding the cell
-        if (selectedCells.length >= 2) {
-            const word = getSelectedWordFromCells(selectedCells);
-            if (word && currentGameWords.includes(word) && !foundWords.has(word)) {
-                const color = getRandomColor();
-                selectedCells.forEach(cell => {
-                    cell.style.backgroundColor = color;
-                    cell.style.color = '#FFFFFF';
-                });
-                checkWord(word);
-                selectedCells = [];
-            }
+        cell.setAttribute('aria-selected', 'true');
+        clickModeCells.push(cell);
+    }
+    
+    if (clickModeCells.length >= 2) {
+        const word = getSelectedWordFromCells(clickModeCells);
+        if (word) {
+            checkWord(word, clickModeCells);
+            clickModeCells.forEach(cell => {
+                cell.classList.remove('selected');
+                cell.removeAttribute('aria-selected');
+            });
+            clickModeCells = [];
         }
     }
 }
@@ -575,6 +585,119 @@ function getSelectedWordFromCells(cells) {
     return null;
 }
 
+function shuffleGame() {
+    // Limpar o timer atual
+    clearInterval(timerInterval);
+    
+    // Limpar palavras encontradas
+    foundWords.clear();
+    
+    // Limpar seleções
+    selectedCells.forEach(cell => {
+        cell.classList.remove('selected');
+        cell.removeAttribute('aria-selected');
+    });
+    selectedCells = [];
+    clickModeCells.forEach(cell => {
+        cell.classList.remove('selected');
+        cell.removeAttribute('aria-selected');
+    });
+    clickModeCells = [];
+    
+    // Embaralhar as palavras atuais
+    currentGameWords = shuffleArray([...currentGameWords]);
+    
+    // Recriar o grid com as palavras embaralhadas
+    const config = gameConfig[currentDifficulty];
+    createGrid(config.gridSize);
+    placeWords(currentGameWords);
+    fillEmptySpaces();
+    renderGrid();
+    
+    // Embaralhar a ordem das palavras na lista
+    const wordListElement = document.getElementById('wordList');
+    const wordElements = Array.from(wordListElement.children);
+    const shuffledElements = shuffleArray(wordElements);
+    
+    // Limpar a lista e adicionar as palavras embaralhadas
+    wordListElement.innerHTML = '';
+    shuffledElements.forEach(element => {
+        wordListElement.appendChild(element);
+    });
+    
+    // Reiniciar o timer
+    startTimer();
+    
+    // Remover highlight das palavras
+    document.querySelectorAll('.word-item.highlight').forEach(el => {
+        el.classList.remove('highlight');
+    });
+    
+    // Remover classe found das palavras
+    document.querySelectorAll('.word-item.found').forEach(el => {
+        el.classList.remove('found');
+    });
+    
+    // Adicionar efeito visual de embaralhamento
+    const wordList = document.querySelector('.word-list');
+    wordList.classList.add('shuffling');
+    setTimeout(() => {
+        wordList.classList.remove('shuffling');
+    }, 500);
+}
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function updateRanking(difficulty, time) {
+    const ranking = rankings[difficulty];
+    ranking.push(time);
+    ranking.sort((a, b) => a - b);
+    if (ranking.length > 5) {
+        ranking.pop();
+    }
+    saveRankings();
+    displayRankings();
+}
+
+function saveRankings() {
+    localStorage.setItem('wordSearchRankings', JSON.stringify(rankings));
+}
+
+function loadRankings() {
+    const saved = localStorage.getItem('wordSearchRankings');
+    if (saved) {
+        rankings = JSON.parse(saved);
+    }
+    displayRankings();
+}
+
+function displayRankings() {
+    const rankingList = document.getElementById('rankingList');
+    rankingList.innerHTML = '';
+    
+    Object.entries(rankings).forEach(([difficulty, times]) => {
+        const difficultyTitle = document.createElement('h4');
+        difficultyTitle.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+        rankingList.appendChild(difficultyTitle);
+        
+        times.forEach((time, index) => {
+            const item = document.createElement('div');
+            item.className = 'ranking-item';
+            const minutes = Math.floor(time / 60).toString().padStart(2, '0');
+            const seconds = (time % 60).toString().padStart(2, '0');
+            item.textContent = `${index + 1}º lugar: ${minutes}:${seconds}`;
+            rankingList.appendChild(item);
+        });
+    });
+}
+
 window.onload = () => {
     showScreen('bootScreen');
+    loadRankings();
 }; 

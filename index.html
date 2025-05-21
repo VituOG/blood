@@ -10,44 +10,56 @@
     <link rel="stylesheet" href="css.css">
 </head>
 <body>
-
-    <div id="bootScreen" class="screen active">
-        <div class="header">
-            <img src="senailogo.png" alt="Logo SENAI">
-            <h1>Caça Palavras SENAI</h1>
-            <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai">
-        </div>
-        <h2>Escolha a Dificuldade</h2>
-        <button class="difficulty-btn" onclick="startGame('facil')">Fácil</button>
-        <button class="difficulty-btn" onclick="startGame('medio')">Médio</button>
-        <button class="difficulty-btn" onclick="startGame('dificil')">Difícil</button>
-    </div>
-
-    <div id="gameScreen" class="screen">
-        <div class="header">
-            <img src="senailogo.png" alt="Logo SENAI">
-            <h1>Caça Palavras SENAI</h1>
-            <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai">
-        </div>
-        <div class="timer">Tempo: <span id="time">00:00</span></div>
-        <div class="game-container">
-            <div id="wordGrid" class="word-grid"></div>
-            <div class="word-list">
-                <h3>Palavras para Encontrar:</h3>
-                <div id="wordList"></div>
+    <main>
+        <div id="bootScreen" class="screen active" role="main" aria-label="Tela inicial">
+            <header class="header">
+                <img src="senailogo.png" alt="Logo SENAI" width="200" height="auto">
+                <h1>Caça Palavras SENAI</h1>
+                <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai" width="100" height="auto">
+            </header>
+            <h2>Escolha a Dificuldade</h2>
+            <div class="difficulty-buttons" role="group" aria-label="Níveis de dificuldade">
+                <button class="difficulty-btn" onclick="startGame('facil')" aria-label="Iniciar jogo no nível fácil">Fácil</button>
+                <button class="difficulty-btn" onclick="startGame('medio')" aria-label="Iniciar jogo no nível médio">Médio</button>
+                <button class="difficulty-btn" onclick="startGame('dificil')" aria-label="Iniciar jogo no nível difícil">Difícil</button>
+            </div>
+            <div class="ranking">
+                <h3>Melhores Tempos</h3>
+                <div id="rankingList" class="ranking-list"></div>
             </div>
         </div>
-        <div class="game-controls">
-            <button class="difficulty-btn" onclick="returnToMenu()">Voltar ao Menu</button>
-        </div>
-    </div>
 
-    
-    <div id="completionMessage" class="completion-message">
-        <h2>Você Conseguiu, mano!</h2>
-        <p>Tempo: <span id="finalTime">00:00</span></p>
-        <button onclick="returnToMenu()">Voltar ao Menu</button>
-    </div>
+        <div id="gameScreen" class="screen" role="main" aria-label="Tela do jogo">
+            <header class="header">
+                <img src="senailogo.png" alt="Logo SENAI" width="200" height="auto">
+                <h1>Caça Palavras SENAI</h1>
+                <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai" width="100" height="auto">
+            </header>
+            <div class="timer" role="timer" aria-label="Tempo de jogo">Tempo: <span id="time">00:00</span></div>
+            <div class="game-container">
+                <div id="wordGrid" class="word-grid" role="grid" aria-label="Grade de palavras"></div>
+                <div class="word-list" role="list" aria-label="Lista de palavras para encontrar">
+                    <h3>Palavras para Encontrar:</h3>
+                    <div id="wordList"></div>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button class="difficulty-btn" onclick="shuffleGame()" aria-label="Embaralhar palavras e reiniciar">Embaralhar</button>
+                <button class="difficulty-btn" onclick="returnToMenu()" aria-label="Voltar ao menu principal">Voltar ao Menu</button>
+            </div>
+        </div>
+
+        <div id="completionMessage" class="completion-message" role="dialog" aria-label="Mensagem de conclusão">
+            <h2>Parabéns!</h2>
+            <p>Você encontrou todas as palavras!</p>
+            <p>Tempo: <span id="finalTime">00:00</span></p>
+            <button onclick="returnToMenu()" aria-label="Voltar ao menu principal">Voltar ao Menu</button>
+        </div>
+    </main>
+
+    <footer class="copyright">
+        Desenvolvido por Vitor C, Renan C, Gabriel F e Samuel C
+    </footer>
 
     <script src="script.js"></script>
 </body>
