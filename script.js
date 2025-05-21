@@ -227,6 +227,50 @@ function handleCellMouseOver(e) {
     if (selectedCells.length > 0) {
         const cell = e.target;
         if (!selectedCells.includes(cell)) {
+            // Check if the new cell forms a valid line with existing cells
+            const lastCell = selectedCells[selectedCells.length - 1];
+            const lastRow = parseInt(lastCell.dataset.row);
+            const lastCol = parseInt(lastCell.dataset.col);
+            const newRow = parseInt(cell.dataset.row);
+            const newCol = parseInt(cell.dataset.col);
+            
+            const rowDiff = newRow - lastRow;
+            const colDiff = newCol - lastCol;
+            
+            // If this is the second cell, establish the direction
+            if (selectedCells.length === 1) {
+                if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
+                    return; // Not a valid direction
+                }
+            } else {
+                // For subsequent cells, check if they follow the same direction
+                const firstCell = selectedCells[0];
+                const firstRow = parseInt(firstCell.dataset.row);
+                const firstCol = parseInt(firstCell.dataset.col);
+                
+                const initialRowDiff = lastRow - firstRow;
+                const initialColDiff = lastCol - firstCol;
+                
+                if (initialRowDiff !== 0 && initialColDiff !== 0) {
+                    // Diagonal
+                    if (Math.abs(rowDiff) !== Math.abs(colDiff) || 
+                        Math.sign(rowDiff) !== Math.sign(initialRowDiff) || 
+                        Math.sign(colDiff) !== Math.sign(initialColDiff)) {
+                        return;
+                    }
+                } else if (initialRowDiff === 0) {
+                    // Horizontal
+                    if (rowDiff !== 0 || Math.sign(colDiff) !== Math.sign(initialColDiff)) {
+                        return;
+                    }
+                } else {
+                    // Vertical
+                    if (colDiff !== 0 || Math.sign(rowDiff) !== Math.sign(initialRowDiff)) {
+                        return;
+                    }
+                }
+            }
+            
             cell.classList.add('selected');
             selectedCells.push(cell);
         }
@@ -235,8 +279,13 @@ function handleCellMouseOver(e) {
 
 function handleCellMouseUp() {
     if (selectedCells.length > 0) {
-        const word = getSelectedWord();
-        if (word) {
+        const word = getSelectedWordFromCells(selectedCells);
+        if (word && currentGameWords.includes(word) && !foundWords.has(word)) {
+            const color = getRandomColor();
+            selectedCells.forEach(cell => {
+                cell.style.backgroundColor = color;
+                cell.style.color = '#FFFFFF';
+            });
             checkWord(word);
         }
         selectedCells.forEach(cell => cell.classList.remove('selected'));
@@ -407,16 +456,14 @@ function setupModeToggle() {
 }
 
 function handleCellClick(e) {
-    if (!isClickMode) return;
-    
     const cell = e.target;
-    if (clickModeCells.includes(cell)) {
+    if (selectedCells.includes(cell)) {
         cell.classList.remove('selected');
-        clickModeCells = clickModeCells.filter(c => c !== cell);
+        selectedCells = selectedCells.filter(c => c !== cell);
     } else {
         // Check if the new cell forms a valid line with existing cells
-        if (clickModeCells.length > 0) {
-            const lastCell = clickModeCells[clickModeCells.length - 1];
+        if (selectedCells.length > 0) {
+            const lastCell = selectedCells[selectedCells.length - 1];
             const lastRow = parseInt(lastCell.dataset.row);
             const lastCol = parseInt(lastCell.dataset.col);
             const newRow = parseInt(cell.dataset.row);
@@ -426,13 +473,13 @@ function handleCellClick(e) {
             const colDiff = newCol - lastCol;
             
             // If this is the second cell, establish the direction
-            if (clickModeCells.length === 1) {
+            if (selectedCells.length === 1) {
                 if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
                     return; // Not a valid direction
                 }
             } else {
                 // For subsequent cells, check if they follow the same direction
-                const firstCell = clickModeCells[0];
+                const firstCell = selectedCells[0];
                 const firstRow = parseInt(firstCell.dataset.row);
                 const firstCol = parseInt(firstCell.dataset.col);
                 
@@ -461,19 +508,19 @@ function handleCellClick(e) {
         }
         
         cell.classList.add('selected');
-        clickModeCells.push(cell);
+        selectedCells.push(cell);
         
         // Check for word after adding the cell
-        if (clickModeCells.length >= 2) {
-            const word = getSelectedWordFromCells(clickModeCells);
+        if (selectedCells.length >= 2) {
+            const word = getSelectedWordFromCells(selectedCells);
             if (word && currentGameWords.includes(word) && !foundWords.has(word)) {
                 const color = getRandomColor();
-                clickModeCells.forEach(cell => {
+                selectedCells.forEach(cell => {
                     cell.style.backgroundColor = color;
                     cell.style.color = '#FFFFFF';
                 });
                 checkWord(word);
-                clickModeCells = [];
+                selectedCells = [];
             }
         }
     }
