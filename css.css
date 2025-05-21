@@ -38,6 +38,8 @@ body {
 .header {
     text-align: center;
     margin-bottom: 30px;
+    position: relative;
+    width: 100%;
 }
 
 .header img {
@@ -50,6 +52,15 @@ body {
     font-size: 2.5em;
     margin-bottom: 10px;
     font-weight: 700;
+}
+
+.mundo-senai {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: auto;
+    z-index: 1000;
 }
 
 .difficulty-btn {
@@ -74,9 +85,11 @@ body {
 .game-container {
     display: flex;
     gap: 30px;
-    flex-wrap: wrap;
+    flex-direction: row;
     justify-content: center;
+    align-items: flex-start;
     margin: 20px 0;
+    flex-wrap: nowrap;
 }
 
 .word-grid {
@@ -86,6 +99,11 @@ body {
     padding: 2px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    flex-shrink: 0;
 }
 
 .cell {
@@ -100,6 +118,7 @@ body {
     user-select: none;
     font-size: 1.2em;
     transition: background-color 0.2s;
+    touch-action: none;
 }
 
 .cell.selected {
@@ -113,6 +132,7 @@ body {
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     min-width: 250px;
+    flex-shrink: 0;
 }
 
 .word-list h3 {
@@ -192,11 +212,63 @@ body {
     color: white;
 }
 
+.game-controls {
+    display: flex;
+    gap: 20px;
+    justify-content: flex-end;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.mode-btn {
+    background-color: var(--senai-blue);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 1.1em;
+    transition: background-color 0.2s;
+}
+
+.mode-btn:hover {
+    background-color: var(--senai-light-blue);
+}
+
+.mode-btn.active {
+    background-color: var(--senai-light-blue);
+}
+
+@media (max-width: 900px) {
+    .game-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .word-list {
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .game-controls {
+        justify-content: center;
+    }
+}
+
 @media (max-width: 600px) {
     .cell {
-        width: 30px;
-        height: 30px;
-        font-size: 1em;
+        width: 25px;
+        height: 25px;
+        font-size: 0.9em;
+    }
+
+    .game-container {
+        gap: 15px;
+    }
+
+    .word-list {
+        min-width: 200px;
     }
 
     .difficulty-btn {
@@ -207,5 +279,17 @@ body {
 
     .header h1 {
         font-size: 2em;
+    }
+
+    .mundo-senai {
+        width: 70px;
+    }
+}
+
+@media (max-width: 400px) {
+    .cell {
+        width: 22px;
+        height: 22px;
+        font-size: 0.8em;
     }
 }

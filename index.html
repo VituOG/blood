@@ -15,6 +15,7 @@
         <div class="header">
             <img src="senailogo.png" alt="Logo SENAI">
             <h1>Caça Palavras SENAI</h1>
+            <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai">
         </div>
         <h2>Escolha a Dificuldade</h2>
         <button class="difficulty-btn" onclick="startGame('facil')">Fácil</button>
@@ -26,6 +27,7 @@
         <div class="header">
             <img src="senailogo.png" alt="Logo SENAI">
             <h1>Caça Palavras SENAI</h1>
+            <img src="mundo senai1.png" alt="Mundo SENAI" class="mundo-senai">
         </div>
         <div class="timer">Tempo: <span id="time">00:00</span></div>
         <div class="game-container">
@@ -35,7 +37,10 @@
                 <div id="wordList"></div>
             </div>
         </div>
-        <button class="difficulty-btn" onclick="returnToMenu()">Voltar ao Menu</button>
+        <div class="game-controls">
+            <button id="modeToggle" class="mode-btn">Modo Clique</button>
+            <button class="difficulty-btn" onclick="returnToMenu()">Voltar ao Menu</button>
+        </div>
     </div>
 
     
